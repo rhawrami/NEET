@@ -1,7 +1,9 @@
 import os
 import requests
 import re
-from ipumspy import IpumsApiClient, MicrodataExtract
+import glob
+from pathlib import Path
+from ipumspy import IpumsApiClient, MicrodataExtract, readers
 import numpy as np
 import pandas as pd
 
@@ -10,8 +12,8 @@ content_CPS = requests.get(sampleID_CPS).text
 
 sample_ID_CPS_list = re.findall(r"cps\d{4}_\d{2}[a-z]?", content_CPS) # list of CPS IDs
 
-def get_CPS(years=(2000,2023)):
-    '''collects IPUMS CPS data and returns dataframe
+def get_CPS(years=(2000,2023), filename=''):
+    '''collects IPUMS CPS data and returns csv
     
     ## **Args**:
     
@@ -19,7 +21,15 @@ def get_CPS(years=(2000,2023)):
     a tuple of years to include
 
     &nbsp;ex. years = (2000,2023)
+
+    ***filename***:
+    string of desired file name (all files will be placed in a 'datasets' folder)
+
+    &nbsp;ex. filename = 'cps_16to24_2023'
     '''
+
+    if Path('datasets/' + filename + '.csv.gz').exists():
+        raise FileExistsError(f'File with that name already exists') # check if filename already exists
     
     IPUMS_API_KEY = os.environ.get("IPUMS_API_KEY") # get API environmental variable
     
@@ -43,21 +53,33 @@ def get_CPS(years=(2000,2023)):
         data_format='csv'
     )
     
+    # submit, wait, download extract
     client_API.submit_extract(extract=extract) 
 
     client_API.wait_for_extract(extract)
 
     client_API.download_extract(extract, download_dir='datasets') # download extract to 'datasets' folder
 
+    # rename files from cps_0000x.csv.gz to our filename parameter
+    default_data_files = Path(glob.glob('datasets/cps_0*.csv.gz')[0])
+    default_ddi_files = Path(glob.glob('datasets/cps_0*.xml')[0])
+
+    renamed_data_files = 'datasets/' + filename + '.csv.gz'
+    renamed_ddi_files = 'datasets/' + filename + '.xml'
+
+    default_data_files.rename(renamed_data_files)
+    default_ddi_files.rename(renamed_ddi_files)
+
 
 
 
 if __name__ == '__main__':
-    a = get_CPS(years=(2022,2023))
-    print(a)
-    import glob 
-    #fp = glob.glob('datasets/*.csv.gz')
-    #d = pd.read_csv(fp[0])
-    #print(d['AGE'].head())
-    #print(np.max(d['AGE']))
-    #print(mean, np.mean(d['SEX']))
+    get_CPS(years=(2022,2023), filename='test_cps') # test if I can pull data from IPUMS API, and rename file
+
+    ddi = readers.read_ipums_ddi('datasets/test_cps.xml')
+    dff = readers.read_microdata(ddi=ddi, filename='datasets/test_cps.csv.gz')
+
+    print(dff.head())
+    print('mean age in data:', np.mean(dff['AGE']))
+    print('share of men in sample:', (dff['SEX'] == 1).mean())
+    
