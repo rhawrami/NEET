@@ -60,4 +60,4 @@ if __name__ == '__main__':
     #d = pd.read_csv(fp[0])
     #print(d['AGE'].head())
     #print(np.max(d['AGE']))
-    #print(np.mean(d['SEX']))
+    #print(mean, np.mean(d['SEX']))
