@@ -34,16 +34,12 @@ def get_CPS(years, vars = ['AGE'], filename='', filepath=''):
     &nbsp;ex. filename = 'datasets'
 
     """
-
-    #if Path('datasets/' + filename + '.csv.gz').exists():
-        #raise FileExistsError(f'File with that name already exists') # check if filename already exists
     
     
     sampleID_CPS = 'https://cps.ipums.org/cps-action/samples/sample_ids' # url to CPS sample id's
     content_CPS = requests.get(sampleID_CPS).text
     sample_ID_CPS_list = re.findall(r"cps\d{4}_\d{2}[a-z]?", content_CPS) # list of CPS IDs
 
-    
     
     IPUMS_API_KEY = os.environ.get("IPUMS_API_KEY") # get API environmental variable
     
@@ -59,7 +55,10 @@ def get_CPS(years, vars = ['AGE'], filename='', filepath=''):
     for i in range(start, end + 1):
         for j in ['s','b']:
             for k in range(1, 13):
-                samples_list.append('cps' + str(i) + '_0' + str(k) + j) # all possible IDs, the 's' and 'b' vary randomly by year
+                if k < 10:
+                    samples_list.append('cps' + str(i) + '_0' + str(k) + j) # all possible IDs, the 's' and 'b' vary randomly by year
+                else:
+                    samples_list.append('cps' + str(i) + '_' + str(k) + j)
     
     cleaned_samples_list = [i for i in samples_list if i in sample_ID_CPS_list] # only existing sample IDs
     
@@ -67,8 +66,7 @@ def get_CPS(years, vars = ['AGE'], filename='', filepath=''):
         collection='cps',
         samples=cleaned_samples_list,
         description='CPS Extract for NEETs',
-        variables=vars,
-        data_format='csv'
+        variables=vars
     )
     
     # submit, wait, download extract
@@ -79,10 +77,10 @@ def get_CPS(years, vars = ['AGE'], filename='', filepath=''):
     client_API.download_extract(extract, download_dir=filepath + '/') # download extract 
 
     # rename files from cps_0000[X].csv.gz to our filename parameter
-    default_data_files = Path(glob.glob(filepath + '/' 'cps_0*.csv.gz')[0])
+    default_data_files = Path(glob.glob(filepath + '/' 'cps_0*.dat.gz')[0])
     default_ddi_files = Path(glob.glob(filepath + '/' 'cps_0*.xml')[0])
 
-    renamed_data_files = filepath + '/' + filename + '.csv.gz'
+    renamed_data_files = filepath + '/' + filename + '.dat.gz'
     renamed_ddi_files = filepath + '/' + filename + '.xml'
 
     default_data_files.rename(renamed_data_files)
@@ -92,10 +90,10 @@ def get_CPS(years, vars = ['AGE'], filename='', filepath=''):
 
 
 if __name__ == '__main__':
-    get_CPS(years=(2022,2023), vars=['AGE', 'SEX'], filename='test_cps') # test if I can pull data from IPUMS API, and rename file
+    get_CPS(years=(2022,2023), vars=['AGE', 'SEX'], filename='test_cps', filepath='datasets/') # test if I can pull data from IPUMS API, and rename file
 
     ddi = readers.read_ipums_ddi('datasets/test_cps.xml')
-    dff = readers.read_microdata(ddi=ddi, filename='datasets/test_cps.csv.gz')
+    dff = readers.read_microdata(ddi=ddi, filename='datasets/test_cps.dat.gz')
 
     print(dff.head())
     print('mean age in data:', np.mean(dff['AGE']))
