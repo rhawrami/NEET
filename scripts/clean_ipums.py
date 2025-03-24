@@ -76,7 +76,7 @@ def get_CPS(years, vars = ['AGE'], filename='', filepath=''):
 
     client_API.download_extract(extract, download_dir=filepath + '/') # download extract 
 
-    # rename files from cps_0000[X].csv.gz to our filename parameter
+    # rename files from cps_0000[X].[dat.gz/xml] to our filename parameter
     default_data_files = Path(glob.glob(filepath + '/' 'cps_0*.dat.gz')[0])
     default_ddi_files = Path(glob.glob(filepath + '/' 'cps_0*.xml')[0])
 
