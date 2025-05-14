@@ -5,3 +5,5 @@ matplotlib
 pandas
 ipumspy
 us
+dotenv
+plotly
